@@ -94,10 +94,6 @@ impl Guest for SegmentComponent {
             return Err(String::from("Segment write key is required"));
         }
 
-        if p.track.name.is_empty() {
-            return Err(String::from("No tracking"));
-        }
-
         let mut payload = SegmentPayload::new(p.clone(), cred.clone());
         payload.event_type = String::from("track");
         payload.event = p.track.name.clone();
@@ -128,10 +124,6 @@ impl Guest for SegmentComponent {
 
         if cred.get("segment_write_key").is_none() {
             return Err(String::from("Segment write key is required"));
-        }
-
-        if p.track.name.is_empty() {
-            return Err(String::from("No tracking"));
         }
 
         let mut payload = SegmentPayload::new(p.clone(), cred.clone());
