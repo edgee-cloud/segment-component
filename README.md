@@ -39,26 +39,8 @@ This component implements the data collection protocol between [segment](https:/
   credentials.segment_api_key = "..." 
   ```
 
-## Contact
-- [Twitter](https://x.com/edgee_cloud)
-- [Slack](https://www.edgee.cloud/slack)
-
-
 ## Contributing
 If you're interested in contributing to Edgee, read our [contribution guidelines](./CONTRIBUTING.md)
-
-### Installing Nix
-
-We use Nix to manage our development environment. You can install it using the following command:
-```
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-```
-
-With Nix installed you can run `nix develop` in this folder and get a shell where all dependencies installed.
-
-### Direnv
-
-Alternatively you can install [direnv](https://direnv.net/docs/installation.html) for a better experience and integration with most IDEs.
 
 ## Reporting Security Vulnerabilities
 If you've found a vulnerability or potential vulnerability in our code, please let us know at

@@ -1,370 +1,144 @@
-use std::collections::HashMap;
+mod segment_payload;
 
 use base64::{
     alphabet::STANDARD,
     engine::{general_purpose::PAD, GeneralPurpose},
     Engine,
 };
-use chrono::{DateTime, Utc};
 use exports::provider::{Dict, EdgeeRequest, Guest, Payload};
-use serde::Serialize;
-
-mod string_ext;
-use string_ext::StringExt;
+use segment_payload::SegmentPayload;
+use std::collections::HashMap;
 
 wit_bindgen::generate!({world: "data-collection"});
 export!(SegmentComponent);
 
 struct SegmentComponent;
 
-impl SegmentComponent {
-    fn build_headers(p: &Payload, cred: HashMap<String, String>) -> Vec<(String, String)> {
-        let key = cred
-            .get("segment_write_key")
-            .unwrap_or(&String::new())
-            .to_owned();
-        let key = GeneralPurpose::new(&STANDARD, PAD).encode(format!("{}:", key));
-
-        let mut headers = vec![];
-        headers.push((String::from("authorization"), format!("Basic {}", key)));
-        headers.push((
-            String::from("content-type"),
-            String::from("application/json"),
-        ));
-        headers.push((
-            String::from("user-agent"),
-            String::from(&p.client.user_agent),
-        ));
-        headers.push((String::from("x-forwarded-for"), String::from(&p.client.ip)));
-        return headers;
-    }
-}
-
 impl Guest for SegmentComponent {
-    fn page(p: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
-        let cred: HashMap<String, String> = cred_map
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.to_string()))
-            .collect();
+    fn page(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
+        // create a new segment payload
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "page".to_string())
+                .map_err(|e| e.to_string())?;
 
-        if cred.get("segment_project_id").is_none() {
-            return Err(String::from("Segment project id is required"));
-        }
-
-        if cred.get("segment_write_key").is_none() {
-            return Err(String::from("Segment write key is required"));
-        }
-
-        let mut payload = SegmentPayload::new(p.clone(), cred.clone());
-        payload.event_type = String::from("page");
-
+        // page event properties
         let mut properties = HashMap::new();
-        properties.insert(String::from("path"), p.page.path.to_string());
-        properties.insert(String::from("title"), p.page.title.to_string());
-        properties.insert(String::from("url"), p.page.url.to_string());
-        properties.insert(String::from("referrer"), p.page.referrer.to_string());
-        properties.insert(String::from("search"), p.page.search.to_string());
-        properties.insert(String::from("keywords"), p.page.keywords.join(","));
-
-        for (key, value) in p.page.properties.iter() {
-            properties.insert(key.to_string(), value.to_string());
+        properties.insert(
+            "path".to_string(),
+            serde_json::Value::String(edgee_payload.page.path.clone()),
+        );
+        properties.insert(
+            "title".to_string(),
+            serde_json::Value::String(edgee_payload.page.title.clone()),
+        );
+        properties.insert(
+            "url".to_string(),
+            serde_json::Value::String(edgee_payload.page.url.clone()),
+        );
+        if !edgee_payload.page.referrer.is_empty() {
+            properties.insert(
+                "referrer".to_string(),
+                serde_json::Value::String(edgee_payload.page.referrer.clone()),
+            );
+        }
+        if !edgee_payload.page.search.is_empty() {
+            properties.insert(
+                "search".to_string(),
+                serde_json::Value::String(edgee_payload.page.search.clone()),
+            );
+        }
+        if edgee_payload.page.keywords.len() > 0 {
+            // convert keywords to a json array of strings
+            // clone keywords and transform them to a json array of strings like `let v = json!(["an", "array"]);`
+            let keywords_json = serde_json::to_value(edgee_payload.page.keywords.clone());
+            if keywords_json.is_ok() {
+                properties.insert("keywords".to_string(), keywords_json.unwrap());
+            }
         }
 
-        payload.properties = properties;
+        // iterate over page.properties and add them to properties
+        for (key, value) in edgee_payload.page.properties.clone().iter() {
+            properties.insert(key.clone(), value.clone().parse().unwrap_or_default());
+        }
 
-        Ok(EdgeeRequest {
-            method: exports::provider::HttpMethod::Post,
-            url: String::from("https://api.segment.io/v1/track"),
-            headers: SegmentComponent::build_headers(&p, cred.clone()),
-            body: serde_json::to_string(&payload).unwrap(),
-        })
+        segment_payload.properties = Some(properties);
+
+        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 
-    fn track(p: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
-        let cred: HashMap<String, String> = cred_map
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.to_string()))
-            .collect();
-
-        if cred.get("segment_project_id").is_none() {
-            return Err(String::from("Segment project id is required"));
+    fn track(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
+        // check if edgee_payload.track is empty
+        if edgee_payload.track.name.is_empty() {
+            return Err("Track is not set".to_string());
         }
 
-        if cred.get("segment_write_key").is_none() {
-            return Err(String::from("Segment write key is required"));
-        }
+        // create a new segment payload
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "track".to_string())
+                .map_err(|e| e.to_string())?;
 
-        let mut payload = SegmentPayload::new(p.clone(), cred.clone());
-        payload.event_type = String::from("track");
-        payload.event = p.track.name.clone();
-        payload.properties = p
+        // event name and properties
+        segment_payload.event = Option::from(edgee_payload.track.name.clone());
+        let properties = edgee_payload
             .track
             .properties
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
             .collect();
+        segment_payload.properties = Some(properties);
 
-        Ok(EdgeeRequest {
-            method: exports::provider::HttpMethod::Post,
-            url: String::from("https://api.segment.io/v1/track"),
-            headers: SegmentComponent::build_headers(&p, cred.clone()),
-            body: serde_json::to_string(&payload).unwrap(),
-        })
+        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 
-    fn identify(p: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
-        let cred: HashMap<String, String> = cred_map
-            .iter()
-            .map(|(key, value)| (key.to_string(), value.to_string()))
-            .collect();
-
-        if cred.get("segment_project_id").is_none() {
-            return Err(String::from("Segment project id is required"));
+    fn identify(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
+        // check if edgee_payload.identify is empty
+        if edgee_payload.identify.user_id.is_empty()
+            && edgee_payload.identify.anonymous_id.is_empty()
+        {
+            return Err("userId or anonymousId is not set".to_string());
         }
 
-        if cred.get("segment_write_key").is_none() {
-            return Err(String::from("Segment write key is required"));
-        }
+        // Convert edgee_payload to segment Payload
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "identify".to_string())
+                .map_err(|e| e.to_string())?;
 
-        let mut payload = SegmentPayload::new(p.clone(), cred.clone());
-        payload.event_type = String::from("identify");
-
-        if p.identify.anonymous_id.is_empty() && p.identify.user_id.is_empty() {
-            return Err(String::from("No user id or anonymous id"));
-        }
-
-        payload.traits = p
+        // get edgee_payload.identify.properties and set segment_payload.traits with it
+        let properties = edgee_payload
             .identify
             .properties
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
             .collect();
+        segment_payload.traits = Some(properties);
 
-        Ok(EdgeeRequest {
-            method: exports::provider::HttpMethod::Post,
-            url: String::from("https://api.segment.io/v1/identify"),
-            headers: SegmentComponent::build_headers(&p, cred.clone()),
-            body: serde_json::to_string(&payload).unwrap(),
-        })
+        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 }
 
-#[derive(Debug, Default, Serialize)]
-struct SegmentPayload {
-    #[serde(rename = "projectId")]
-    project_id: String,
-    timestamp: DateTime<Utc>,
-    #[serde(rename = "type")]
-    event_type: String,
-    context: Context,
-    #[serde(rename = "userId", skip_serializing_if = "String::is_empty")]
-    user_id: String,
-    #[serde(rename = "anonymousId", skip_serializing_if = "String::is_empty")]
-    anonymous_id: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    category: String,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    properties: HashMap<String, String>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    event: String,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    traits: HashMap<String, String>,
-}
+fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> EdgeeRequest {
+    let cred: HashMap<String, String> = cred_map
+        .iter()
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect();
 
-impl SegmentPayload {
-    fn new(p: Payload, cred: HashMap<String, String>) -> Self {
-        let mut data = Self::default();
+    let key = cred
+        .get("segment_write_key")
+        .unwrap_or(&String::new())
+        .to_owned();
+    let key = GeneralPurpose::new(&STANDARD, PAD).encode(format!("{}:", key));
 
-        data.project_id = cred
-            .get("segment_project_id")
-            .map(String::from)
-            .unwrap_or_default();
+    let mut headers = vec![];
+    headers.push((String::from("authorization"), format!("Basic {}", key)));
+    headers.push((
+        String::from("content-type"),
+        String::from("application/json"),
+    ));
 
-        data.timestamp = DateTime::from_timestamp_millis(p.timestamp).unwrap();
-        data.user_id = p.identify.user_id;
-        data.anonymous_id = p.identify.anonymous_id.or(&p.identify.edgee_id).to_string();
-
-        if !p.page.url.is_empty() {
-            let mut page = Page::default();
-            page.title = p.page.title;
-            page.url = p.page.url;
-            page.path = p.page.path;
-            page.referrer = p.page.referrer;
-            page.search = p.page.search;
-            data.context.page = Some(page);
-        }
-
-        if !p.campaign.name.is_empty() {
-            let mut campaign = Campaign::default();
-            campaign.name = p.campaign.name;
-            campaign.source = p.campaign.source;
-            campaign.medium = p.campaign.medium;
-            campaign.term = p.campaign.term;
-            campaign.content = p.campaign.content;
-            data.context.campaign = Some(campaign);
-        }
-
-        data.context.ip = p.client.ip;
-        data.context.locale = p.client.locale;
-
-        data.context.os = Some(Os {
-            name: p.client.os_name,
-            version: p.client.os_version,
-        });
-
-        if p.client.screen_width != 0 && p.client.screen_height != 0 {
-            data.context.screen = Some(Screen {
-                width: Some(p.client.screen_width),
-                height: Some(p.client.screen_height),
-                density: Some(p.client.screen_density),
-            });
-        }
-
-        data.context.timezone = p.client.timezone;
-        data.context.user_agent = p.client.user_agent;
-
-        return data;
+    EdgeeRequest {
+        method: exports::provider::HttpMethod::Post,
+        url: String::from("https://api.segment.io/v1/track"),
+        headers,
+        body: serde_json::to_string(&segment_payload).unwrap(),
     }
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Context {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    active: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    app: Option<App>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    campaign: Option<Campaign>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    device: Option<Device>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    ip: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    library: Option<Library>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    locale: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    network: Option<Network>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    os: Option<Os>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    page: Option<Page>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    referrer: Option<Referrer>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    screen: Option<Screen>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    group_id: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    timezone: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    user_agent: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct App {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    version: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    build: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    namespace: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Campaign {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    source: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    medium: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    term: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    content: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Device {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    id: String,
-    #[serde(rename = "advertisingId", skip_serializing_if = "String::is_empty")]
-    advertising_id: String,
-    #[serde(rename = "adTrackingEnabled", skip_serializing_if = "Option::is_none")]
-    ad_tracking_enabled: Option<bool>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    manufacturer: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    model: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    type_: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    token: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Library {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    version: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Network {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bluetooth: Option<bool>,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    carrier: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    cellular: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    wifi: Option<bool>,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Os {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    name: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    version: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Page {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    path: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    referrer: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    search: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    title: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    url: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Referrer {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    id: String,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    type_: String,
-}
-
-#[derive(Debug, Default, Serialize)]
-struct Screen {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    width: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    height: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    density: Option<i32>,
 }
