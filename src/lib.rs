@@ -1,6 +1,10 @@
 mod segment_payload;
 
-use base64::{alphabet::STANDARD, engine::{general_purpose::PAD, GeneralPurpose}, Engine};
+use base64::{
+    alphabet::STANDARD,
+    engine::{general_purpose::PAD, GeneralPurpose},
+    Engine,
+};
 use exports::provider::{Dict, EdgeeRequest, Guest, Payload};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
@@ -13,8 +17,9 @@ struct SegmentComponent;
 impl Guest for SegmentComponent {
     fn page(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
         // create a new segment payload
-        let mut segment_payload = SegmentPayload::new(&edgee_payload, &cred_map, "page".to_string())
-            .map_err(|e| e.to_string())?;
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "page".to_string())
+                .map_err(|e| e.to_string())?;
 
         // page event properties
         let mut properties = HashMap::new();
@@ -68,8 +73,9 @@ impl Guest for SegmentComponent {
         }
 
         // create a new segment payload
-        let mut segment_payload = SegmentPayload::new(&edgee_payload, &cred_map, "track".to_string())
-            .map_err(|e| e.to_string())?;
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "track".to_string())
+                .map_err(|e| e.to_string())?;
 
         // event name and properties
         segment_payload.event = Option::from(edgee_payload.track.name.clone());
@@ -93,8 +99,9 @@ impl Guest for SegmentComponent {
         }
 
         // Convert edgee_payload to segment Payload
-        let mut segment_payload = SegmentPayload::new(&edgee_payload, &cred_map, "identify".to_string())
-            .map_err(|e| e.to_string())?;
+        let mut segment_payload =
+            SegmentPayload::new(&edgee_payload, &cred_map, "identify".to_string())
+                .map_err(|e| e.to_string())?;
 
         // get edgee_payload.identify.properties and set segment_payload.traits with it
         let properties = edgee_payload
@@ -135,6 +142,3 @@ fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> Edge
         body: serde_json::to_string(&segment_payload).unwrap(),
     }
 }
-
-
-

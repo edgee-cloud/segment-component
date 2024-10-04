@@ -29,7 +29,11 @@ pub(crate) struct SegmentPayload {
 }
 
 impl SegmentPayload {
-    pub fn new(edgee_payload: &Payload, cred_map: &Dict, event_type: String) ->anyhow::Result<Self> {
+    pub fn new(
+        edgee_payload: &Payload,
+        cred_map: &Dict,
+        event_type: String,
+    ) -> anyhow::Result<Self> {
         let mut segment_payload = SegmentPayload::default();
         segment_payload.event_type = event_type;
 
@@ -48,7 +52,9 @@ impl SegmentPayload {
 
         segment_payload.project_id = credentials.get("segment_project_id").unwrap().to_string();
         // Convert i64 timestamp (with microseconds) to DateTime<Utc>
-        segment_payload.timestamp = Utc.timestamp_micros(edgee_payload.timestamp_micros.clone()).unwrap();
+        segment_payload.timestamp = Utc
+            .timestamp_micros(edgee_payload.timestamp_micros.clone())
+            .unwrap();
 
         // user_id
         if !edgee_payload.identify.user_id.is_empty() {
