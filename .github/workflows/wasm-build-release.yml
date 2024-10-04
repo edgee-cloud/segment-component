@@ -16,7 +16,7 @@ jobs:
         with:
           targets: wasm32-wasip1 # WebAssembly target
       - name: Set up build environment
-        run: make setup
+        run: make install
       - name: Build WASM
         run: make build
       - name: Upload WASM to release
