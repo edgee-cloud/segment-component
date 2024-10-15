@@ -1,7 +1,11 @@
 mod segment_payload;
 
-use base64::{alphabet::STANDARD, engine::{general_purpose::PAD, GeneralPurpose}, Engine};
-use exports::provider::{Dict, EdgeeRequest, Guest, Event, Data};
+use base64::{
+    alphabet::STANDARD,
+    engine::{general_purpose::PAD, GeneralPurpose},
+    Engine,
+};
+use exports::provider::{Data, Dict, EdgeeRequest, Event, Guest};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
@@ -13,15 +17,14 @@ struct SegmentComponent;
 impl Guest for SegmentComponent {
     fn page(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
         // create a new segment payload
-        let mut segment_payload =
-            SegmentPayload::new(&edgee_event, &cred_map, "page".to_string())
-                .map_err(|e| e.to_string())?;
+        let mut segment_payload = SegmentPayload::new(&edgee_event, &cred_map, "page".to_string())
+            .map_err(|e| e.to_string())?;
 
         if let Data::Page(ref data) = edgee_event.data {
             // page event properties
             let mut properties = HashMap::new();
 
-            properties.insert("title".to_string(),data.title.clone().into());
+            properties.insert("title".to_string(), data.title.clone().into());
             segment_payload.context.page.as_mut().unwrap().title = Some(data.title.clone());
 
             properties.insert("url".to_string(), data.url.clone().into());
@@ -32,7 +35,8 @@ impl Guest for SegmentComponent {
 
             if !data.referrer.is_empty() {
                 properties.insert("referrer".to_string(), data.referrer.clone().into());
-                segment_payload.context.page.as_mut().unwrap().referrer = Some(data.referrer.clone());
+                segment_payload.context.page.as_mut().unwrap().referrer =
+                    Some(data.referrer.clone());
             }
             if !data.search.is_empty() {
                 properties.insert("search".to_string(), data.search.clone().into());
@@ -109,7 +113,6 @@ impl Guest for SegmentComponent {
         } else {
             Err("Missing user data".to_string())
         }
-
     }
 }
 
