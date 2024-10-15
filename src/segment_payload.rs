@@ -29,11 +29,7 @@ pub(crate) struct SegmentPayload {
 }
 
 impl SegmentPayload {
-    pub fn new(
-        edgee_event: &Event,
-        cred_map: &Dict,
-        event_type: String,
-    ) -> anyhow::Result<Self> {
+    pub fn new(edgee_event: &Event, cred_map: &Dict, event_type: String) -> anyhow::Result<Self> {
         let mut segment_payload = SegmentPayload::default();
         segment_payload.event_type = event_type;
 
@@ -161,7 +157,8 @@ impl SegmentPayload {
         }
 
         if !edgee_event.context.client.user_agent.is_empty() {
-            segment_payload.context.user_agent = Some(edgee_event.context.client.user_agent.clone());
+            segment_payload.context.user_agent =
+                Some(edgee_event.context.client.user_agent.clone());
         }
 
         Ok(segment_payload)
