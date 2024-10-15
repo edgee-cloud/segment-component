@@ -1,11 +1,7 @@
 mod segment_payload;
 
-use base64::{
-    alphabet::STANDARD,
-    engine::{general_purpose::PAD, GeneralPurpose},
-    Engine,
-};
-use exports::provider::{Dict, EdgeeRequest, Guest, Payload};
+use base64::{alphabet::STANDARD, engine::{general_purpose::PAD, GeneralPurpose}, Engine};
+use exports::provider::{Dict, EdgeeRequest, Guest, Event, Data};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
@@ -15,104 +11,105 @@ export!(SegmentComponent);
 struct SegmentComponent;
 
 impl Guest for SegmentComponent {
-    fn page(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
+    fn page(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
         // create a new segment payload
         let mut segment_payload =
-            SegmentPayload::new(&edgee_payload, &cred_map, "page".to_string())
+            SegmentPayload::new(&edgee_event, &cred_map, "page".to_string())
                 .map_err(|e| e.to_string())?;
 
-        // page event properties
-        let mut properties = HashMap::new();
-        properties.insert(
-            "path".to_string(),
-            serde_json::Value::String(edgee_payload.page.path.clone()),
-        );
-        properties.insert(
-            "title".to_string(),
-            serde_json::Value::String(edgee_payload.page.title.clone()),
-        );
-        properties.insert(
-            "url".to_string(),
-            serde_json::Value::String(edgee_payload.page.url.clone()),
-        );
-        if !edgee_payload.page.referrer.is_empty() {
-            properties.insert(
-                "referrer".to_string(),
-                serde_json::Value::String(edgee_payload.page.referrer.clone()),
-            );
-        }
-        if !edgee_payload.page.search.is_empty() {
-            properties.insert(
-                "search".to_string(),
-                serde_json::Value::String(edgee_payload.page.search.clone()),
-            );
-        }
-        if edgee_payload.page.keywords.len() > 0 {
-            // convert keywords to a json array of strings
-            // clone keywords and transform them to a json array of strings like `let v = json!(["an", "array"]);`
-            let keywords_json = serde_json::to_value(edgee_payload.page.keywords.clone());
-            if keywords_json.is_ok() {
-                properties.insert("keywords".to_string(), keywords_json.unwrap());
+        if let Data::Page(ref data) = edgee_event.data {
+            // page event properties
+            let mut properties = HashMap::new();
+
+            properties.insert("title".to_string(),data.title.clone().into());
+            segment_payload.context.page.as_mut().unwrap().title = Some(data.title.clone());
+
+            properties.insert("url".to_string(), data.url.clone().into());
+            segment_payload.context.page.as_mut().unwrap().url = Some(data.url.clone());
+
+            properties.insert("path".to_string(), data.path.clone().into());
+            segment_payload.context.page.as_mut().unwrap().path = Some(data.path.clone());
+
+            if !data.referrer.is_empty() {
+                properties.insert("referrer".to_string(), data.referrer.clone().into());
+                segment_payload.context.page.as_mut().unwrap().referrer = Some(data.referrer.clone());
             }
+            if !data.search.is_empty() {
+                properties.insert("search".to_string(), data.search.clone().into());
+                segment_payload.context.page.as_mut().unwrap().search = Some(data.search.clone());
+            }
+            if data.keywords.len() > 0 {
+                let keywords_json = serde_json::to_value(data.keywords.clone());
+                if keywords_json.is_ok() {
+                    properties.insert("keywords".to_string(), keywords_json.unwrap());
+                }
+            }
+
+            // iterate over page.properties and add them to properties
+            for (key, value) in data.properties.clone().iter() {
+                properties.insert(key.clone(), value.clone().parse().unwrap_or_default());
+            }
+
+            segment_payload.properties = Some(properties);
+
+            Ok(build_edgee_request(segment_payload, &cred_map))
+        } else {
+            Err("Missing page data".to_string())
         }
-
-        // iterate over page.properties and add them to properties
-        for (key, value) in edgee_payload.page.properties.clone().iter() {
-            properties.insert(key.clone(), value.clone().parse().unwrap_or_default());
-        }
-
-        segment_payload.properties = Some(properties);
-
-        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 
-    fn track(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
-        // check if edgee_payload.track is empty
-        if edgee_payload.track.name.is_empty() {
-            return Err("Track is not set".to_string());
+    fn track(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
+        if let Data::Track(ref data) = edgee_event.data {
+            // check if edgee_payload.track is empty
+            if data.name.is_empty() {
+                return Err("Track is not set".to_string());
+            }
+
+            // create a new segment payload
+            let mut segment_payload =
+                SegmentPayload::new(&edgee_event, &cred_map, "track".to_string())
+                    .map_err(|e| e.to_string())?;
+
+            // event name and properties
+            segment_payload.event = Option::from(data.name.clone());
+            let properties = data
+                .properties
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
+                .collect();
+            segment_payload.properties = Some(properties);
+
+            Ok(build_edgee_request(segment_payload, &cred_map))
+        } else {
+            Err("Missing track data".to_string())
         }
-
-        // create a new segment payload
-        let mut segment_payload =
-            SegmentPayload::new(&edgee_payload, &cred_map, "track".to_string())
-                .map_err(|e| e.to_string())?;
-
-        // event name and properties
-        segment_payload.event = Option::from(edgee_payload.track.name.clone());
-        let properties = edgee_payload
-            .track
-            .properties
-            .iter()
-            .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
-            .collect();
-        segment_payload.properties = Some(properties);
-
-        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 
-    fn identify(edgee_payload: Payload, cred_map: Dict) -> Result<EdgeeRequest, String> {
-        // check if edgee_payload.identify is empty
-        if edgee_payload.identify.user_id.is_empty()
-            && edgee_payload.identify.anonymous_id.is_empty()
-        {
-            return Err("userId or anonymousId is not set".to_string());
+    fn user(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
+        if let Data::User(ref data) = edgee_event.data {
+            // check if edgee_payload.identify is empty
+            if data.user_id.is_empty() && data.anonymous_id.is_empty() {
+                return Err("user_id or anonymous_id is not set".to_string());
+            }
+
+            // Convert edgee_payload to segment Payload
+            let mut segment_payload =
+                SegmentPayload::new(&edgee_event, &cred_map, "identify".to_string())
+                    .map_err(|e| e.to_string())?;
+
+            // get edgee_payload.identify.properties and set segment_payload.traits with it
+            let properties = data
+                .properties
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
+                .collect();
+            segment_payload.traits = Some(properties);
+
+            Ok(build_edgee_request(segment_payload, &cred_map))
+        } else {
+            Err("Missing user data".to_string())
         }
 
-        // Convert edgee_payload to segment Payload
-        let mut segment_payload =
-            SegmentPayload::new(&edgee_payload, &cred_map, "identify".to_string())
-                .map_err(|e| e.to_string())?;
-
-        // get edgee_payload.identify.properties and set segment_payload.traits with it
-        let properties = edgee_payload
-            .identify
-            .properties
-            .iter()
-            .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
-            .collect();
-        segment_payload.traits = Some(properties);
-
-        Ok(build_edgee_request(segment_payload, &cred_map))
     }
 }
 

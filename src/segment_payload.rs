@@ -1,4 +1,4 @@
-use crate::exports::provider::{Dict, Payload};
+use crate::exports::provider::{Dict, Event};
 use anyhow::anyhow;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Serialize;
@@ -11,7 +11,7 @@ pub(crate) struct SegmentPayload {
     timestamp: DateTime<Utc>,
     #[serde(rename = "type")]
     pub(crate) event_type: String,
-    context: Context,
+    pub(crate) context: Context,
     #[serde(rename = "userId", skip_serializing_if = "Option::is_none")]
     user_id: Option<String>,
     #[serde(rename = "anonymousId", skip_serializing_if = "Option::is_none")]
@@ -30,7 +30,7 @@ pub(crate) struct SegmentPayload {
 
 impl SegmentPayload {
     pub fn new(
-        edgee_payload: &Payload,
+        edgee_event: &Event,
         cred_map: &Dict,
         event_type: String,
     ) -> anyhow::Result<Self> {
@@ -53,37 +53,37 @@ impl SegmentPayload {
         segment_payload.project_id = credentials.get("segment_project_id").unwrap().to_string();
         // Convert i64 timestamp (with microseconds) to DateTime<Utc>
         segment_payload.timestamp = Utc
-            .timestamp_micros(edgee_payload.timestamp_micros.clone())
+            .timestamp_micros(edgee_event.timestamp_micros.clone())
             .unwrap();
 
         // user_id
-        if !edgee_payload.identify.user_id.is_empty() {
-            segment_payload.user_id = Some(edgee_payload.identify.user_id.clone());
+        if !edgee_event.context.user.user_id.is_empty() {
+            segment_payload.user_id = Some(edgee_event.context.user.user_id.clone());
         }
         // anonymous_id
         // todo: ID continuity
-        if !edgee_payload.identify.anonymous_id.is_empty() {
-            segment_payload.anonymous_id = Some(edgee_payload.identify.anonymous_id.clone());
+        if !edgee_event.context.user.anonymous_id.is_empty() {
+            segment_payload.anonymous_id = Some(edgee_event.context.user.anonymous_id.clone());
         } else {
-            segment_payload.anonymous_id = Some(edgee_payload.identify.edgee_id.to_string());
+            segment_payload.anonymous_id = Some(edgee_event.context.user.edgee_id.to_string());
         }
 
         // add context.page
         let mut page = Page::default();
-        if !edgee_payload.page.title.is_empty() {
-            page.title = Some(edgee_payload.page.title.clone());
+        if !edgee_event.context.page.title.is_empty() {
+            page.title = Some(edgee_event.context.page.title.clone());
         }
-        if !edgee_payload.page.url.is_empty() {
-            page.url = Some(edgee_payload.page.url.clone());
+        if !edgee_event.context.page.url.is_empty() {
+            page.url = Some(edgee_event.context.page.url.clone());
         }
-        if !edgee_payload.page.path.is_empty() {
-            page.path = Some(edgee_payload.page.path.clone());
+        if !edgee_event.context.page.path.is_empty() {
+            page.path = Some(edgee_event.context.page.path.clone());
         }
-        if !edgee_payload.page.referrer.is_empty() {
-            page.referrer = Some(edgee_payload.page.referrer.clone());
+        if !edgee_event.context.page.referrer.is_empty() {
+            page.referrer = Some(edgee_event.context.page.referrer.clone());
         }
-        if !edgee_payload.page.search.is_empty() {
-            page.search = Some(edgee_payload.page.search.clone());
+        if !edgee_event.context.page.search.is_empty() {
+            page.search = Some(edgee_event.context.page.search.clone());
         }
         // set context.page only if it has any value
         if page.title.is_some()
@@ -97,20 +97,20 @@ impl SegmentPayload {
 
         // if edgee_payload.campaign is Some
         let mut campaign = Campaign::default();
-        if !edgee_payload.campaign.name.is_empty() {
-            campaign.name = Some(edgee_payload.campaign.name.clone());
+        if !edgee_event.context.campaign.name.is_empty() {
+            campaign.name = Some(edgee_event.context.campaign.name.clone());
         }
-        if !edgee_payload.campaign.source.is_empty() {
-            campaign.source = Some(edgee_payload.campaign.source.clone());
+        if !edgee_event.context.campaign.source.is_empty() {
+            campaign.source = Some(edgee_event.context.campaign.source.clone());
         }
-        if !edgee_payload.campaign.medium.is_empty() {
-            campaign.medium = Some(edgee_payload.campaign.medium.clone());
+        if !edgee_event.context.campaign.medium.is_empty() {
+            campaign.medium = Some(edgee_event.context.campaign.medium.clone());
         }
-        if !edgee_payload.campaign.term.is_empty() {
-            campaign.term = Some(edgee_payload.campaign.term.clone());
+        if !edgee_event.context.campaign.term.is_empty() {
+            campaign.term = Some(edgee_event.context.campaign.term.clone());
         }
-        if !edgee_payload.campaign.content.is_empty() {
-            campaign.content = Some(edgee_payload.campaign.content.clone());
+        if !edgee_event.context.campaign.content.is_empty() {
+            campaign.content = Some(edgee_event.context.campaign.content.clone());
         }
         // set context.campaign only if it has any value
         if campaign.name.is_some()
@@ -123,18 +123,18 @@ impl SegmentPayload {
         }
 
         // if edgee_payload.client is Some
-        if !edgee_payload.client.ip.is_empty() {
-            segment_payload.context.ip = Some(edgee_payload.client.ip.clone());
+        if !edgee_event.context.client.ip.is_empty() {
+            segment_payload.context.ip = Some(edgee_event.context.client.ip.clone());
         }
-        if !edgee_payload.client.locale.is_empty() {
-            segment_payload.context.locale = Some(edgee_payload.client.locale.clone());
+        if !edgee_event.context.client.locale.is_empty() {
+            segment_payload.context.locale = Some(edgee_event.context.client.locale.clone());
         }
         let mut os = Os::default();
-        if !edgee_payload.client.os_name.is_empty() {
-            os.name = Some(edgee_payload.client.os_name.clone());
+        if !edgee_event.context.client.os_name.is_empty() {
+            os.name = Some(edgee_event.context.client.os_name.clone());
         }
-        if !edgee_payload.client.os_version.is_empty() {
-            os.version = Some(edgee_payload.client.os_version.clone());
+        if !edgee_event.context.client.os_version.is_empty() {
+            os.version = Some(edgee_event.context.client.os_version.clone());
         }
         // set context.os only if it has any value
         if os.name.is_some() || os.version.is_some() {
@@ -142,26 +142,26 @@ impl SegmentPayload {
         }
 
         let mut screen = Screen::default();
-        if edgee_payload.client.screen_width != 0 {
-            screen.width = Some(edgee_payload.client.screen_width.try_into()?);
+        if edgee_event.context.client.screen_width != 0 {
+            screen.width = Some(edgee_event.context.client.screen_width.try_into()?);
         }
-        if edgee_payload.client.screen_height != 0 {
-            screen.height = Some(edgee_payload.client.screen_height.try_into()?);
+        if edgee_event.context.client.screen_height != 0 {
+            screen.height = Some(edgee_event.context.client.screen_height.try_into()?);
         }
-        if edgee_payload.client.screen_density != 0 {
-            screen.density = Some(edgee_payload.client.screen_density.try_into()?);
+        if edgee_event.context.client.screen_density != 0 {
+            screen.density = Some(edgee_event.context.client.screen_density.try_into()?);
         }
         // set context.screen only if it has any value
         if screen.width.is_some() || screen.height.is_some() || screen.density.is_some() {
             segment_payload.context.screen = Some(screen);
         }
 
-        if !edgee_payload.client.timezone.is_empty() {
-            segment_payload.context.timezone = Some(edgee_payload.client.timezone.clone());
+        if !edgee_event.context.client.timezone.is_empty() {
+            segment_payload.context.timezone = Some(edgee_event.context.client.timezone.clone());
         }
 
-        if !edgee_payload.client.user_agent.is_empty() {
-            segment_payload.context.user_agent = Some(edgee_payload.client.user_agent.clone());
+        if !edgee_event.context.client.user_agent.is_empty() {
+            segment_payload.context.user_agent = Some(edgee_event.context.client.user_agent.clone());
         }
 
         Ok(segment_payload)
@@ -169,7 +169,7 @@ impl SegmentPayload {
 }
 
 #[derive(Serialize, Debug, Default)]
-struct Context {
+pub struct Context {
     #[serde(skip_serializing_if = "Option::is_none")]
     active: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -189,7 +189,7 @@ struct Context {
     #[serde(skip_serializing_if = "Option::is_none")]
     os: Option<Os>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    page: Option<Page>,
+    pub(crate) page: Option<Page>,
     #[serde(skip_serializing_if = "Option::is_none")]
     referrer: Option<Referrer>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -277,17 +277,17 @@ struct Os {
 }
 
 #[derive(Serialize, Debug, Default)]
-struct Page {
+pub(crate) struct Page {
     #[serde(skip_serializing_if = "Option::is_none")]
-    path: Option<String>,
+    pub(crate) path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    referrer: Option<String>,
+    pub(crate) referrer: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    search: Option<String>,
+    pub(crate) search: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
+    pub(crate) title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<String>,
+    pub(crate) url: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
