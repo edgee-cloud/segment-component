@@ -51,7 +51,7 @@ impl Guest for SegmentComponent {
 
             // iterate over page.properties and add them to properties
             for (key, value) in data.properties.clone().iter() {
-                properties.insert(key.clone(), value.clone().parse().unwrap_or_default());
+                properties.insert(key.clone(), parse_value(value));
             }
 
             segment_payload.properties = Some(properties);
@@ -76,11 +76,13 @@ impl Guest for SegmentComponent {
 
             // event name and properties
             segment_payload.event = Option::from(data.name.clone());
-            let properties = data
-                .properties
-                .iter()
-                .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
-                .collect();
+
+            let mut properties = HashMap::new();
+
+            // iterate over page.properties and add them to properties
+            for (key, value) in data.properties.clone().iter() {
+                properties.insert(key.clone(), parse_value(value));
+            }
             segment_payload.properties = Some(properties);
 
             Ok(build_edgee_request(segment_payload, &cred_map))
@@ -102,17 +104,30 @@ impl Guest for SegmentComponent {
                     .map_err(|e| e.to_string())?;
 
             // get edgee_payload.identify.properties and set segment_payload.traits with it
-            let properties = data
-                .properties
-                .iter()
-                .map(|(key, value)| (key.clone(), value.clone().parse().unwrap_or_default()))
-                .collect();
+            let mut properties = HashMap::new();
+
+            // iterate over page.properties and add them to properties
+            for (key, value) in data.properties.clone().iter() {
+                properties.insert(key.clone(), parse_value(value));
+            }
             segment_payload.traits = Some(properties);
 
             Ok(build_edgee_request(segment_payload, &cred_map))
         } else {
             Err("Missing user data".to_string())
         }
+    }
+}
+
+fn parse_value(value: &str) -> serde_json::Value {
+    if value == "true" {
+        serde_json::Value::from(true)
+    } else if value == "false" {
+        serde_json::Value::from(false)
+    } else if let Some(_v) = value.parse::<f64>().ok() {
+        serde_json::Value::Number(value.parse().unwrap())
+    } else {
+        serde_json::Value::String(value.to_string())
     }
 }
 
