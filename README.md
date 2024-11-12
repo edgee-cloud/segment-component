@@ -23,7 +23,7 @@ This component implements the data collection protocol between [segment](https:/
 
 ### Protocol coverage
 
-| Page View | Track | Identify |
+| Page | Track | User |
 | -------- | ------- | ------- |
 |  ✅ | ✅ | ✅ |
 
