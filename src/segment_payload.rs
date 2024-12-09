@@ -144,7 +144,7 @@ impl SegmentPayload {
         if edgee_event.context.client.screen_height != 0 {
             screen.height = Some(edgee_event.context.client.screen_height.try_into()?);
         }
-        if edgee_event.context.client.screen_density != 0 {
+        if edgee_event.context.client.screen_density != 0.0 {
             screen.density = Some(edgee_event.context.client.screen_density.try_into()?);
         }
         // set context.screen only if it has any value
@@ -302,5 +302,5 @@ struct Screen {
     #[serde(skip_serializing_if = "Option::is_none")]
     height: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    density: Option<u32>,
+    density: Option<f32>,
 }
