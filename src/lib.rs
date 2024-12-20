@@ -5,11 +5,11 @@ use base64::{
     engine::{general_purpose::PAD, GeneralPurpose},
     Engine,
 };
-use exports::provider::{Data, Dict, EdgeeRequest, Event, Guest};
+use exports::edgee::protocols::provider::{Data, Dict, EdgeeRequest, Event, Guest, HttpMethod};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
-wit_bindgen::generate!({world: "data-collection"});
+wit_bindgen::generate!({world: "data-collection", path: "wit", with: { "edgee:protocols/provider": generate }});
 export!(SegmentComponent);
 
 struct SegmentComponent;
@@ -151,7 +151,7 @@ fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> Edge
     ));
 
     EdgeeRequest {
-        method: exports::provider::HttpMethod::Post,
+        method: HttpMethod::Post,
         url: String::from("https://api.segment.io/v1/track"),
         headers,
         body: serde_json::to_string(&segment_payload).unwrap(),

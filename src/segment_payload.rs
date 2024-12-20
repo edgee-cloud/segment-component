@@ -1,8 +1,9 @@
-use crate::exports::provider::{Dict, Event};
 use anyhow::anyhow;
 use chrono::{DateTime, TimeZone, Utc};
 use serde::Serialize;
 use std::collections::HashMap;
+
+use crate::exports::edgee::protocols::provider::{Dict, Event};
 
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct SegmentPayload {
