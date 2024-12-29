@@ -31,27 +31,27 @@ pub(crate) struct SegmentPayload {
 
 impl SegmentPayload {
     pub fn new(edgee_event: &Event, cred_map: &Dict, event_type: String) -> anyhow::Result<Self> {
-        let mut segment_payload = SegmentPayload::default();
-        segment_payload.event_type = event_type;
+        let mut segment_payload = SegmentPayload {
+            event_type,
+            ..SegmentPayload::default()
+        };
 
         let credentials: HashMap<String, String> = cred_map
             .iter()
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
 
-        if credentials.get("segment_project_id").is_none() {
+        if !credentials.contains_key("segment_project_id") {
             return Err(anyhow!("Segment project id is required"));
         }
 
-        if credentials.get("segment_write_key").is_none() {
+        if !credentials.contains_key("segment_write_key") {
             return Err(anyhow!("Segment write key is required"));
         }
 
         segment_payload.project_id = credentials.get("segment_project_id").unwrap().to_string();
         // Convert i64 timestamp (with microseconds) to DateTime<Utc>
-        segment_payload.timestamp = Utc
-            .timestamp_micros(edgee_event.timestamp_micros.clone())
-            .unwrap();
+        segment_payload.timestamp = Utc.timestamp_micros(edgee_event.timestamp_micros).unwrap();
 
         // user_id
         if !edgee_event.context.user.user_id.is_empty() {
@@ -146,7 +146,7 @@ impl SegmentPayload {
             screen.height = Some(edgee_event.context.client.screen_height.try_into()?);
         }
         if edgee_event.context.client.screen_density != 0.0 {
-            screen.density = Some(edgee_event.context.client.screen_density.try_into()?);
+            screen.density = Some(edgee_event.context.client.screen_density);
         }
         // set context.screen only if it has any value
         if screen.width.is_some() || screen.height.is_some() || screen.density.is_some() {

@@ -42,10 +42,10 @@ impl Guest for SegmentComponent {
                 properties.insert("search".to_string(), data.search.clone().into());
                 segment_payload.context.page.as_mut().unwrap().search = Some(data.search.clone());
             }
-            if data.keywords.len() > 0 {
+            if !data.keywords.is_empty() {
                 let keywords_json = serde_json::to_value(data.keywords.clone());
-                if keywords_json.is_ok() {
-                    properties.insert("keywords".to_string(), keywords_json.unwrap());
+                if let Ok(keywords_value) = keywords_json {
+                    properties.insert("keywords".to_string(), keywords_value);
                 }
             }
 
@@ -124,7 +124,7 @@ fn parse_value(value: &str) -> serde_json::Value {
         serde_json::Value::from(true)
     } else if value == "false" {
         serde_json::Value::from(false)
-    } else if let Some(_v) = value.parse::<f64>().ok() {
+    } else if value.parse::<f64>().is_ok() {
         serde_json::Value::Number(value.parse().unwrap())
     } else {
         serde_json::Value::String(value.to_string())
