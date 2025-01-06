@@ -58,10 +58,9 @@ impl SegmentPayload {
             segment_payload.user_id = Some(edgee_event.context.user.user_id.clone());
         }
         // anonymous_id
+        // todo: ID continuity
         if !edgee_event.context.user.anonymous_id.is_empty() {
             segment_payload.anonymous_id = Some(edgee_event.context.user.anonymous_id.clone());
-        } else if !edgee_event.context.user.component_id.is_empty() {
-            segment_payload.anonymous_id = Some(edgee_event.context.user.component_id.clone());
         } else {
             segment_payload.anonymous_id = Some(edgee_event.context.user.edgee_id.to_string());
         }
