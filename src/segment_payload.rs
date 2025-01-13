@@ -81,15 +81,10 @@ impl SegmentPayload {
         if !edgee_event.context.page.search.is_empty() {
             page.search = Some(edgee_event.context.page.search.clone());
         }
-        // set context.page only if it has any value
-        if page.title.is_some()
-            || page.url.is_some()
-            || page.path.is_some()
-            || page.referrer.is_some()
-            || page.search.is_some()
-        {
-            segment_payload.context.page = Some(page);
-        }
+
+        // set context.page (even if empty because SegmentComponent expects it)
+        // see segment_payload.context.page.as_mut().unwrap().title = ...
+        segment_payload.context.page = Some(page);
 
         // if edgee_payload.campaign is Some
         let mut campaign = Campaign::default();
