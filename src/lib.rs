@@ -5,7 +5,9 @@ use base64::{
     engine::{general_purpose::PAD, GeneralPurpose},
     Engine,
 };
-use exports::edgee::protocols::data_collection::{Data, Dict, EdgeeRequest, Event, Guest, HttpMethod};
+use exports::edgee::protocols::data_collection::{
+    Data, Dict, EdgeeRequest, Event, Guest, HttpMethod,
+};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
