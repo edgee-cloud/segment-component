@@ -5,11 +5,11 @@ use base64::{
     engine::{general_purpose::PAD, GeneralPurpose},
     Engine,
 };
-use exports::edgee::protocols::provider::{Data, Dict, EdgeeRequest, Event, Guest, HttpMethod};
+use exports::edgee::protocols::data_collection::{Data, Dict, EdgeeRequest, Event, Guest, HttpMethod};
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
-wit_bindgen::generate!({world: "data-collection", path: "wit", with: { "edgee:protocols/provider": generate }});
+wit_bindgen::generate!({world: "edgee", path: "wit", with: { "edgee:protocols/data-collection": generate }});
 export!(SegmentComponent);
 
 struct SegmentComponent;
@@ -161,27 +161,27 @@ fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> Edge
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exports::edgee::protocols::provider::{
+    use crate::exports::edgee::protocols::data_collection::{
         Campaign, Client, Context, EventType, PageData, Session, TrackData, UserData,
     };
-    use exports::edgee::protocols::provider::Consent;
+    use exports::edgee::protocols::data_collection::Consent;
     use pretty_assertions::assert_eq;
     use uuid::Uuid;
 
     fn sample_user_data(edgee_id: String) -> UserData {
-        return UserData {
+        UserData {
             user_id: "123".to_string(),
             anonymous_id: "456".to_string(),
-            edgee_id: edgee_id,
+            edgee_id,
             properties: vec![
                 ("prop1".to_string(), "value1".to_string()),
                 ("prop2".to_string(), "10".to_string()),
             ],
-        };
+        }
     }
 
     fn sample_user_data_without_anonymous_id() -> UserData {
-        return UserData {
+        UserData {
             user_id: "123".to_string(),
             anonymous_id: "".to_string(),
             edgee_id: "abc".to_string(),
@@ -189,11 +189,11 @@ mod tests {
                 ("prop1".to_string(), "value1".to_string()),
                 ("prop2".to_string(), "10".to_string()),
             ],
-        };
+        }
     }
 
     fn sample_user_data_invalid_without_ids() -> UserData {
-        return UserData {
+        UserData {
             user_id: "".to_string(),
             anonymous_id: "".to_string(),
             edgee_id: "abc".to_string(),
@@ -201,11 +201,11 @@ mod tests {
                 ("prop1".to_string(), "value1".to_string()),
                 ("prop2".to_string(), "10".to_string()),
             ],
-        };
+        }
     }
 
     fn sample_campaign_data() -> Campaign {
-        return Campaign {
+        Campaign {
             name: "random".to_string(),
             source: "random".to_string(),
             medium: "random".to_string(),
@@ -213,11 +213,11 @@ mod tests {
             content: "random".to_string(),
             creative_format: "random".to_string(),
             marketing_tactic: "random".to_string(),
-        };
+        }
     }
 
     fn sample_campaign_data_empty() -> Campaign {
-        return Campaign {
+        Campaign {
             name: "".to_string(),
             source: "".to_string(),
             medium: "".to_string(),
@@ -225,7 +225,7 @@ mod tests {
             content: "".to_string(),
             creative_format: "".to_string(),
             marketing_tactic: "".to_string(),
-        };
+        }
     }
 
     fn sample_context(
@@ -235,13 +235,13 @@ mod tests {
         page_data: PageData,
         campaign_data: Campaign,
     ) -> Context {
-        return Context {
+        Context {
             page: page_data,
             user: user_data,
             client: Client {
                 city: "Paris".to_string(),
                 ip: "192.168.0.1".to_string(),
-                locale: locale,
+                locale,
                 timezone: "CET".to_string(),
                 user_agent: "Chrome".to_string(),
                 user_agent_architecture: "fuck knows".to_string(),
@@ -265,15 +265,15 @@ mod tests {
                 session_id: "random".to_string(),
                 previous_session_id: "random".to_string(),
                 session_count: 2,
-                session_start: session_start,
+                session_start,
                 first_seen: 123,
                 last_seen: 123,
             },
-        };
+        }
     }
 
     fn sample_page_data() -> PageData {
-        return PageData {
+        PageData {
             name: "page name".to_string(),
             category: "category".to_string(),
             keywords: vec!["value1".to_string(), "value2".into()],
@@ -287,11 +287,11 @@ mod tests {
                 ("prop2".to_string(), "true".to_string()),
                 ("currency".to_string(), "USD".to_string()),
             ],
-        };
+        }
     }
 
     fn sample_page_data_empty() -> PageData {
-        return PageData {
+        PageData {
             name: "".to_string(),
             category: "".to_string(),
             keywords: vec![],
@@ -301,7 +301,7 @@ mod tests {
             search: "".to_string(),
             referrer: "".to_string(),
             properties: vec![],
-        };
+        }
     }
 
     fn sample_page_event(
@@ -310,7 +310,7 @@ mod tests {
         locale: String,
         session_start: bool,
     ) -> Event {
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -324,8 +324,8 @@ mod tests {
                 sample_page_data(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_page_event_without_context_page_data(
@@ -334,7 +334,7 @@ mod tests {
         locale: String,
         session_start: bool,
     ) -> Event {
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -348,8 +348,8 @@ mod tests {
                 sample_page_data_empty(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_page_event_without_context_campaign_data(
@@ -358,7 +358,7 @@ mod tests {
         locale: String,
         session_start: bool,
     ) -> Event {
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -372,12 +372,12 @@ mod tests {
                 sample_page_data_empty(),
                 sample_campaign_data_empty(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_track_data(event_name: String) -> TrackData {
-        return TrackData {
+        TrackData {
             name: event_name,
             products: vec![],
             properties: vec![
@@ -385,7 +385,7 @@ mod tests {
                 ("prop2".to_string(), "10".to_string()),
                 ("currency".to_string(), "USD".to_string()),
             ],
-        };
+        }
     }
 
     fn sample_track_event(
@@ -395,7 +395,7 @@ mod tests {
         locale: String,
         session_start: bool,
     ) -> Event {
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -409,8 +409,8 @@ mod tests {
                 sample_page_data(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_user_event(
@@ -420,7 +420,7 @@ mod tests {
         session_start: bool,
     ) -> Event {
         let user_data = sample_user_data(edgee_id.clone());
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -434,8 +434,8 @@ mod tests {
                 sample_page_data(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_user_event_without_ids(
@@ -444,7 +444,7 @@ mod tests {
         session_start: bool,
     ) -> Event {
         let user_data = sample_user_data_invalid_without_ids();
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -458,8 +458,8 @@ mod tests {
                 sample_page_data(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_user_event_without_anonymous_id(
@@ -468,7 +468,7 @@ mod tests {
         session_start: bool,
     ) -> Event {
         let user_data = sample_user_data_without_anonymous_id();
-        return Event {
+        Event {
             uuid: Uuid::new_v4().to_string(),
             timestamp: 123,
             timestamp_millis: 123,
@@ -482,15 +482,15 @@ mod tests {
                 sample_page_data(),
                 sample_campaign_data(),
             ),
-            consent: consent,
-        };
+            consent,
+        }
     }
 
     fn sample_credentials() -> Vec<(String, String)> {
-        return vec![
+        vec![
             ("segment_project_id".to_string(), "abc".to_string()),
             ("segment_write_key".to_string(), "abc".to_string()),
-        ];
+        ]
     }
 
     #[test]
@@ -507,7 +507,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
         assert_eq!(
             edgee_request.url.starts_with("https://api.segment.io"),
             true
@@ -524,7 +524,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -559,7 +559,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -577,7 +577,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -595,7 +595,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -607,7 +607,7 @@ mod tests {
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
@@ -642,7 +642,7 @@ mod tests {
         assert_eq!(result.clone().is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
-        assert_eq!(edgee_request.body.len() > 0, true);
+        assert!(!edgee_request.body.is_empty());
     }
 
     #[test]
