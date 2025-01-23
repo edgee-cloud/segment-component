@@ -3,7 +3,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use serde::Serialize;
 use std::collections::HashMap;
 
-use crate::exports::edgee::protocols::provider::{Dict, Event};
+use crate::exports::edgee::protocols::data_collection::{Dict, Event};
 
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct SegmentPayload {
