@@ -21,10 +21,10 @@ This component implements the data collection protocol between [Edgee](https://w
 3. Add the following configuration to your `edgee.toml`:
 
 ```toml
-[[destinations.data_collection]]
-name = "segment"
-component = "/var/edgee/components/segment.wasm"
-credentials.segment_api_key = "..."
+[[components.data_collection]]
+id = "segment"
+file = "/var/edgee/components/segment.wasm"
+settings.segment_api_key = "..."
 ```
 
 ## Event Handling
@@ -48,22 +48,22 @@ This allows the user's data to be added to any subsequent page or follow-up call
 
 ### Basic Configuration
 ```toml
-[[destinations.data_collection]]
-name = "segment"
-component = "/var/edgee/components/segment.wasm"
-credentials.segment_api_key = "..."
+[[components.data_collection]]
+id = "segment"
+file = "/var/edgee/components/segment.wasm"
+settings.segment_api_key = "..."
 
 # Optional configurations
-config.anonymization = true        # Enable/disable data anonymization in case of pending or denied consent
-config.default_consent = "pending" # Set default consent status if not specified by the user
+settings.edgee_anonymization = true        # Enable/disable data anonymization in case of pending or denied consent
+settings.edgee_default_consent = "pending" # Set default consent status if not specified by the user
 ```
 
 ### Event Controls
 Control which events are forwarded to Segment:
 ```toml
-config.page_event_enabled = true   # Enable/disable page event
-config.track_event_enabled = true  # Enable/disable track event
-config.user_event_enabled = true   # Enable/disable user event
+settings.edgee_page_event_enabled = true   # Enable/disable page event
+settings.edgee_track_event_enabled = true  # Enable/disable track event
+settings.edgee_user_event_enabled = true   # Enable/disable user event
 ```
 
 ### Consent Management

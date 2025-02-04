@@ -17,9 +17,9 @@ export!(SegmentComponent);
 struct SegmentComponent;
 
 impl Guest for SegmentComponent {
-    fn page(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
+    fn page(edgee_event: Event, settings: Dict) -> Result<EdgeeRequest, String> {
         // create a new segment payload
-        let mut segment_payload = SegmentPayload::new(&edgee_event, &cred_map, "page".to_string())
+        let mut segment_payload = SegmentPayload::new(&edgee_event, &settings, "page".to_string())
             .map_err(|e| e.to_string())?;
 
         if let Data::Page(ref data) = edgee_event.data {
@@ -58,13 +58,13 @@ impl Guest for SegmentComponent {
 
             segment_payload.properties = Some(properties);
 
-            Ok(build_edgee_request(segment_payload, &cred_map))
+            Ok(build_edgee_request(segment_payload, &settings))
         } else {
             Err("Missing page data".to_string())
         }
     }
 
-    fn track(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
+    fn track(edgee_event: Event, settings: Dict) -> Result<EdgeeRequest, String> {
         if let Data::Track(ref data) = edgee_event.data {
             // check if edgee_payload.track is empty
             if data.name.is_empty() {
@@ -73,7 +73,7 @@ impl Guest for SegmentComponent {
 
             // create a new segment payload
             let mut segment_payload =
-                SegmentPayload::new(&edgee_event, &cred_map, "track".to_string())
+                SegmentPayload::new(&edgee_event, &settings, "track".to_string())
                     .map_err(|e| e.to_string())?;
 
             // event name and properties
@@ -87,13 +87,13 @@ impl Guest for SegmentComponent {
             }
             segment_payload.properties = Some(properties);
 
-            Ok(build_edgee_request(segment_payload, &cred_map))
+            Ok(build_edgee_request(segment_payload, &settings))
         } else {
             Err("Missing track data".to_string())
         }
     }
 
-    fn user(edgee_event: Event, cred_map: Dict) -> Result<EdgeeRequest, String> {
+    fn user(edgee_event: Event, settings: Dict) -> Result<EdgeeRequest, String> {
         if let Data::User(ref data) = edgee_event.data {
             // check if edgee_payload.identify is empty
             if data.user_id.is_empty() && data.anonymous_id.is_empty() {
@@ -102,7 +102,7 @@ impl Guest for SegmentComponent {
 
             // Convert edgee_payload to segment Payload
             let mut segment_payload =
-                SegmentPayload::new(&edgee_event, &cred_map, "identify".to_string())
+                SegmentPayload::new(&edgee_event, &settings, "identify".to_string())
                     .map_err(|e| e.to_string())?;
 
             // get edgee_payload.identify.properties and set segment_payload.traits with it
@@ -114,7 +114,7 @@ impl Guest for SegmentComponent {
             }
             segment_payload.traits = Some(properties);
 
-            Ok(build_edgee_request(segment_payload, &cred_map))
+            Ok(build_edgee_request(segment_payload, &settings))
         } else {
             Err("Missing user data".to_string())
         }
@@ -133,8 +133,8 @@ fn parse_value(value: &str) -> serde_json::Value {
     }
 }
 
-fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> EdgeeRequest {
-    let cred: HashMap<String, String> = cred_map
+fn build_edgee_request(segment_payload: SegmentPayload, settings: &Dict) -> EdgeeRequest {
+    let cred: HashMap<String, String> = settings
         .iter()
         .map(|(key, value)| (key.to_string(), value.to_string()))
         .collect();
@@ -156,6 +156,7 @@ fn build_edgee_request(segment_payload: SegmentPayload, cred_map: &Dict) -> Edge
         method: HttpMethod::Post,
         url: String::from("https://api.segment.io/v1/track"),
         headers,
+        forward_client_headers: true,
         body: serde_json::to_string(&segment_payload).unwrap(),
     }
 }
@@ -488,7 +489,7 @@ mod tests {
         }
     }
 
-    fn sample_credentials() -> Vec<(String, String)> {
+    fn sample_settings() -> Vec<(String, String)> {
         vec![
             ("segment_project_id".to_string(), "abc".to_string()),
             ("segment_write_key".to_string(), "abc".to_string()),
@@ -503,8 +504,8 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -520,8 +521,8 @@ mod tests {
     #[test]
     fn page_without_consent() {
         let event = sample_page_event(None, "abc".to_string(), "fr".to_string(), true);
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -537,8 +538,8 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -555,8 +556,8 @@ mod tests {
             true,
         );
 
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -573,8 +574,8 @@ mod tests {
             true,
         );
 
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -591,8 +592,8 @@ mod tests {
             true,
         );
 
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -603,8 +604,8 @@ mod tests {
     #[test]
     fn page_not_session_start() {
         let event = sample_page_event(None, Uuid::new_v4().to_string(), "".to_string(), false);
-        let credentials = sample_credentials();
-        let result = SegmentComponent::page(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::page(event, settings);
 
         assert_eq!(result.is_err(), false);
         let edgee_request = result.unwrap();
@@ -615,18 +616,18 @@ mod tests {
     #[test]
     fn page_without_project_id_fails() {
         let event = sample_page_event(None, "abc".to_string(), "fr".to_string(), true);
-        let credentials: Vec<(String, String)> = vec![]; // empty
-        let result = SegmentComponent::page(event, credentials); // this should panic!
+        let settings: Vec<(String, String)> = vec![]; // empty
+        let result = SegmentComponent::page(event, settings); // this should panic!
         assert_eq!(result.is_err(), true);
     }
 
     #[test]
     fn page_without_write_key_fails() {
         let event = sample_page_event(None, "abc".to_string(), "fr".to_string(), true);
-        let credentials: Vec<(String, String)> = vec![
+        let settings: Vec<(String, String)> = vec![
             ("segment_project_id".to_string(), "abc".to_string()), // only project ID
         ];
-        let result = SegmentComponent::page(event, credentials); // this should panic!
+        let result = SegmentComponent::page(event, settings); // this should panic!
         assert_eq!(result.is_err(), true);
     }
 
@@ -639,8 +640,8 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let credentials = sample_credentials();
-        let result = SegmentComponent::track(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::track(event, settings);
         assert_eq!(result.clone().is_err(), false);
         let edgee_request = result.unwrap();
         assert_eq!(edgee_request.method, HttpMethod::Post);
@@ -656,8 +657,8 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let credentials = sample_credentials();
-        let result = SegmentComponent::track(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::track(event, settings);
         assert_eq!(result.is_err(), true);
     }
 
@@ -669,8 +670,8 @@ mod tests {
             "fr".to_string(),
             true,
         );
-        let credentials = sample_credentials();
-        let result = SegmentComponent::user(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::user(event, settings);
 
         assert_eq!(result.clone().is_err(), false);
     }
@@ -679,8 +680,8 @@ mod tests {
     fn user_event_without_anonymous_id() {
         let event =
             sample_user_event_without_anonymous_id(Some(Consent::Granted), "fr".to_string(), true);
-        let credentials = sample_credentials();
-        let result = SegmentComponent::user(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::user(event, settings);
 
         assert_eq!(result.clone().is_err(), false);
     }
@@ -688,8 +689,8 @@ mod tests {
     #[test]
     fn user_event_without_ids_fails() {
         let event = sample_user_event_without_ids(Some(Consent::Granted), "fr".to_string(), true);
-        let credentials = sample_credentials();
-        let result = SegmentComponent::user(event, credentials);
+        let settings = sample_settings();
+        let result = SegmentComponent::user(event, settings);
 
         assert_eq!(result.clone().is_err(), true);
         assert_eq!(
@@ -714,8 +715,8 @@ mod tests {
         );
         event.context.user.properties = vec![]; // empty context user properties
         event.context.user.user_id = "".to_string(); // empty context user id
-        let credentials: Vec<(String, String)> = sample_credentials();
-        let result = SegmentComponent::track(event, credentials);
+        let settings: Vec<(String, String)> = sample_settings();
+        let result = SegmentComponent::track(event, settings);
         //println!("Error: {}", result.clone().err().unwrap().to_string().as_str());
         assert_eq!(result.clone().is_err(), false);
     }
