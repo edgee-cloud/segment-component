@@ -30,13 +30,13 @@ pub(crate) struct SegmentPayload {
 }
 
 impl SegmentPayload {
-    pub fn new(edgee_event: &Event, cred_map: &Dict, event_type: String) -> anyhow::Result<Self> {
+    pub fn new(edgee_event: &Event, settings: &Dict, event_type: String) -> anyhow::Result<Self> {
         let mut segment_payload = SegmentPayload {
             event_type,
             ..SegmentPayload::default()
         };
 
-        let credentials: HashMap<String, String> = cred_map
+        let credentials: HashMap<String, String> = settings
             .iter()
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
