@@ -1,0 +1,36 @@
+manifest-version = 1
+
+[component]
+name = "Segment"
+version = "0.7.0"
+category = "data-collection"
+subcategory = "analytics"
+description = """
+Segment is the single platform to collect, unify, and activate your first-party data.
+Twilio Segment brings together clean, consented customer data for real-time insights so you can know each individual like they are your only customer.
+> - Collect every touch point. Collect the full view of the customer, across your apps, sales, support, payment, and messaging experiences.
+> - Power all your tools with the same data. Enable the best product analytics, A/B testing, and data warehouse tools with first-party data.
+> - Implement new tools, fast. Integrate new tools in minutes, not weeks. No more setup headaches and no need to push code.
+> - Focus on product work, now. Segment makes trying new tools incredibly easy. Say goodbye to expensive and time-consuming integration processes that stand in the way of leveraging the best tools available."""
+documentation = "https://www.edgee.cloud/docs/components/data-collection/segment"
+repository = "https://github.com/edgee-cloud/segment-component"
+wit-world-version = "0.4.0"
+
+[component.build]
+command = "cargo build --target wasm32-wasip2 --release && cp ./target/wasm32-wasip2/release/segment_component.wasm segment.wasm"
+output_path = "segment.wasm"
+
+[component.settings.segment_project_id]
+title = "Project ID"
+type = "string"
+required = true
+description = """
+The project ID for your Segment project"""
+
+[component.settings.segment_write_key]
+title = "Write Key"
+type = "string"
+required = true
+description = """
+The write key for your Segment project"""
+
