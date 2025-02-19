@@ -12,6 +12,10 @@
 
 <h1 align="center">Segment Component for Edgee</h1>
 
+[![Coverage Status](https://coveralls.io/repos/github/edgee-cloud/segment-component/badge.svg)](https://coveralls.io/github/edgee-cloud/segment-component)
+[![GitHub issues](https://img.shields.io/github/issues/edgee-cloud/segment-component.svg)](https://github.com/edgee-cloud/segment-component/issues)
+[![Edgee Component Registry](https://img.shields.io/badge/Edgee_Component_Registry-Public-green.svg)](https://www.edgee.cloud/edgee/segment)
+
 This component implements the data collection protocol between [Edgee](https://www.edgee.cloud) and [Segment](https://segment.com).
 
 ## Quick Start
