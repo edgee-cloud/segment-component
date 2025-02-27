@@ -711,7 +711,7 @@ dependencies = [
 
 [[package]]
 name = "segment-component"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "base64",
