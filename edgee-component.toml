@@ -15,6 +15,7 @@ Twilio Segment brings together clean, consented customer data for real-time insi
 documentation = "https://www.edgee.cloud/docs/components/data-collection/segment"
 repository = "https://github.com/edgee-cloud/segment-component"
 wit-world-version = "0.5.0"
+icon-path = "segment.png"
 
 [component.build]
 command = "cargo build --target wasm32-wasip2 --release && cp ./target/wasm32-wasip2/release/segment_component.wasm segment.wasm"
