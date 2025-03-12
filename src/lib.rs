@@ -11,7 +11,7 @@ use exports::edgee::components::data_collection::{
 use segment_payload::SegmentPayload;
 use std::collections::HashMap;
 
-wit_bindgen::generate!({world: "data-collection", path: "wit", generate_all});
+wit_bindgen::generate!({world: "data-collection", path: ".edgee/wit", generate_all});
 export!(SegmentComponent);
 
 struct SegmentComponent;
