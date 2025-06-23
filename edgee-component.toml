@@ -33,6 +33,7 @@ The project ID for your Segment project"""
 title = "Write Key"
 type = "string"
 required = true
+secret = true
 description = """
 The write key for your Segment project"""
 
