@@ -19,7 +19,7 @@ icon-path = "segment.png"
 language = "Rust"
 
 [component.build]
-command = "cargo build --target wasm32-wasip2 --release && cp ./target/wasm32-wasip2/release/segment_component.wasm segment.wasm"
+command = "cargo build --target wasm32-wasip2 --release && rm -f segment.wasm && cp ./target/wasm32-wasip2/release/segment_component.wasm segment.wasm"
 output_path = "segment.wasm"
 
 [component.settings.segment_project_id]
