@@ -143,10 +143,10 @@ fn build_edgee_request(segment_payload: SegmentPayload, settings: &Dict) -> Edge
         .get("segment_write_key")
         .unwrap_or(&String::new())
         .to_owned();
-    let key = GeneralPurpose::new(&STANDARD, PAD).encode(format!("{}:", key));
+    let key = GeneralPurpose::new(&STANDARD, PAD).encode(format!("{key}:"));
 
     let mut headers = vec![];
-    headers.push((String::from("authorization"), format!("Basic {}", key)));
+    headers.push((String::from("authorization"), format!("Basic {key}")));
     headers.push((
         String::from("content-type"),
         String::from("application/json"),
