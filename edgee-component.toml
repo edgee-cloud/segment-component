@@ -6,12 +6,42 @@ version = "1.1.0"
 category = "data-collection"
 subcategory = "analytics"
 description = """
-Segment is the single platform to collect, unify, and activate your first-party data.
-Twilio Segment brings together clean, consented customer data for real-time insights so you can know each individual like they are your only customer.
-> - Collect every touch point. Collect the full view of the customer, across your apps, sales, support, payment, and messaging experiences.
-> - Power all your tools with the same data. Enable the best product analytics, A/B testing, and data warehouse tools with first-party data.
-> - Implement new tools, fast. Integrate new tools in minutes, not weeks. No more setup headaches and no need to push code.
-> - Focus on product work, now. Segment makes trying new tools incredibly easy. Say goodbye to expensive and time-consuming integration processes that stand in the way of leveraging the best tools available."""
+## Overview
+
+The **Segment** component by Edgee enables seamless integration of Segment's customer data platform (CDP) into your Edgee projects.
+This component allows you to collect, clean, and activate your customer data directly at the edge, eliminating the need to embed Segment’s script on your website—thereby improving site performance and adhering to strict privacy standards.
+
+---
+
+## Key Features & Benefits
+
+### Features
+
+- **Edge Deployment**: Deploys analytics at the edge, reducing latency and improving performance.
+- **Privacy-Focused**: Operates before the page loads, ensuring compliance with privacy regulations.
+- **Real-Time Data Processing**: Processes data in real-time, enabling immediate insights.
+- **Easy Integration**: Simplifies the integration of Segment into your existing Edgee projects.
+
+### Benefits
+
+- **Faster Load Times**: Enhanced user experience by avoiding client-side SDKs.
+- **Regulation Compliance**: Streamlined adherence to GDPR, CCPA, and other privacy rules.
+- **Real-Time Insights**: Actionable data available instantly.
+- **Lower Overhead**: Reduces reliance on third-party scripts and complex configurations.
+
+---
+
+## Use Cases
+
+- **Privacy-Compliant Analytics**: Collect and analyze user data without compromising privacy.
+- **Performance Optimization**: Improve page speed by offloading analytics to the edge.
+- **Open-Source Preference**: Use a customizable, open CDP with full control.
+- **Simplified Integration**: Easy to set up within Edgee without external JS or SDKs.
+
+---
+
+Additional resources: [Segment Documentation](https://segment.com/docs)
+"""
 documentation = "https://www.edgee.cloud/docs/components/data-collection/segment"
 repository = "https://github.com/edgee-cloud/segment-component"
 wit-version = "1.0.0"
