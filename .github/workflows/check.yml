@@ -4,6 +4,8 @@ on:
     branches:
       - main
   pull_request:
+permissions:
+  contents: read
 
 env:
   EDGEE_API_TOKEN: ${{ secrets.EDGEE_API_TOKEN }}
